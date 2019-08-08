@@ -9,9 +9,8 @@ public class EditorDeMapas : MonoBehaviour
     public float scale = 1.0F;
     public float escala = 10F;
     public float reducir = 2f;
-    public Texture textura;
-    public Texture textura1;
-    private Texture[] texturas;
+    public float arboles = 10F;
+    public float control = 2f;
     private float[,] altura;
 
     private void Awake()
@@ -19,7 +18,7 @@ public class EditorDeMapas : MonoBehaviour
         aux = GetComponent<Terrain>();
         altura = new float[aux.terrainData.heightmapWidth, aux.terrainData.heightmapHeight];
 
-      
+
     }
 
     void Start()
@@ -27,6 +26,7 @@ public class EditorDeMapas : MonoBehaviour
 
         Elevar(aux, escala);
         Pintar(aux);
+        GenerarArboles(aux);
 
     }
 
@@ -56,7 +56,7 @@ public class EditorDeMapas : MonoBehaviour
 
     }
 
-    //https://alastaira.wordpress.com/2013/11/14/procedural-terrain-splatmapping/
+
 
     public void Pintar(Terrain terrain)
     {
@@ -76,7 +76,7 @@ public class EditorDeMapas : MonoBehaviour
                 float gradiente = terrain.terrainData.GetSteepness(y_01, x_01);
                 float[] textures = new float[terrain.terrainData.alphamapLayers];
                 textures[0] = Mathf.Clamp01((terrain.terrainData.heightmapHeight));//low
-                textures[1] = 1.0f - Mathf.Clamp01(gradiente / (terrain.terrainData.heightmapHeight *gradiente)-height);//flat
+                textures[1] = 1.0f - Mathf.Clamp01(gradiente / (terrain.terrainData.heightmapHeight * gradiente) - height);//flat
                 textures[2] = (gradiente * Mathf.Clamp01(normal.z));//high
                 float z = textures.Sum();
 
@@ -96,5 +96,46 @@ public class EditorDeMapas : MonoBehaviour
 
         terrain.terrainData.SetAlphamaps(0, 0, MapaTexturas);
 
+
+
+
+    }
+    private void GenerarArboles(Terrain terrain)
+    {
+      
+        terrain.terrainData.RefreshPrototypes();
+        for (int i = 0; i < terrain.terrainData.alphamapHeight; i++)
+        {
+            for (int j = 0; j < terrain.terrainData.alphamapWidth; j++)
+            {
+
+                float y = (float)i / (float)terrain.terrainData.alphamapHeight;
+                float x = (float)j / (float)terrain.terrainData.alphamapWidth;
+
+                float inclinación = terrain.terrainData.GetSteepness(x, y);
+                float angulo = inclinación / 90.0f;
+                if (angulo < 0.5f)
+                {
+                    float height = terrain.terrainData.GetHeight(Mathf.RoundToInt(y * terrain.terrainData.heightmapHeight), Mathf.RoundToInt(x * terrain.terrainData.heightmapWidth));
+                    float gradiente = terrain.terrainData.GetSteepness(y, x);
+                    Vector3 normal = terrain.terrainData.GetInterpolatedNormal(y, x);
+                    float ruido = (height * Mathf.Clamp01(normal.z) - gradiente);//high
+                    float altura = terrain.terrainData.GetHeight(i, j);
+                    if (ruido < 0.0f && altura < 1)
+                    {
+                        
+                        TreeInstance arbol = new TreeInstance();
+                        arbol.position = new Vector3(x, altura, y);
+                        arbol.prototypeIndex = 0;
+                        arbol.widthScale = 1;
+                        arbol.heightScale = 1;
+                        arbol.color = Color.white;
+                        arbol.lightmapColor = Color.white;
+                       terrain.AddTreeInstance(arbol);
+                    }
+                }
+            }
+        }
     }
 }
+
